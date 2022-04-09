@@ -25,7 +25,7 @@ using StringTools;
 
 class MainMenuState extends MusicBeatState
 {
-	public static var psychEngineVersion:String = '0.5.1'; //This is also used for Discord RPC
+	public static var psychEngineVersion:String = '0.5.2h'; //This is also used for Discord RPC
 	public static var curSelected:Int = 0;
 
 	var menuItems:FlxTypedGroup<FlxSprite>;
@@ -35,7 +35,10 @@ class MainMenuState extends MusicBeatState
 	var optionShit:Array<String> = [
 		'story_mode',
 		'freeplay',
+		#if MODS_ALLOWED 'mods', #end
+		#if ACHIEVEMENTS_ALLOWED 'awards', #end
 		'credits',
+		#if !switch 'donate', #end
 		'options'
 	];
 
@@ -46,11 +49,12 @@ class MainMenuState extends MusicBeatState
 
 	override function create()
 	{
+		WeekData.loadTheFirstEnabledMod();
+
 		#if desktop
 		// Updating Discord Rich Presence
 		DiscordClient.changePresence("In the Menus", null);
 		#end
-
 		debugKeys = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_1'));
 
 		camGame = new FlxCamera();
@@ -89,6 +93,7 @@ class MainMenuState extends MusicBeatState
 		magenta.antialiasing = ClientPrefs.globalAntialiasing;
 		magenta.color = 0xFFfd719b;
 		add(magenta);
+		
 		// magenta.scrollFactor.set();
 
 		menuItems = new FlxTypedGroup<FlxSprite>();
@@ -148,6 +153,10 @@ class MainMenuState extends MusicBeatState
 		}
 		#end
 
+                #if android
+                addVirtualPad(UP_DOWN, A_B_E);
+                #end
+
 		super.create();
 	}
 
@@ -196,7 +205,9 @@ class MainMenuState extends MusicBeatState
 			if (controls.ACCEPT)
 			{
 				if (optionShit[curSelected] == 'donate')
-				{}
+				{
+					CoolUtil.browserLoad('https://ninja-muffin24.itch.io/funkin');
+				}
 				else
 				{
 					selectedSomethin = true;
@@ -228,23 +239,27 @@ class MainMenuState extends MusicBeatState
 										MusicBeatState.switchState(new StoryMenuState());
 									case 'freeplay':
 										MusicBeatState.switchState(new FreeplayState());
+									#if MODS_ALLOWED
+									case 'mods':
+										MusicBeatState.switchState(new ModsMenuState());
+									#end
+									case 'awards':
+										MusicBeatState.switchState(new AchievementsMenuState());
 									case 'credits':
 										MusicBeatState.switchState(new CreditsState());
 									case 'options':
-										MusicBeatState.switchState(new options.OptionsState());
+										LoadingState.loadAndSwitchState(new options.OptionsState());
 								}
 							});
 						}
 					});
 				}
 			}
-			#if desktop
-			else if (FlxG.keys.anyJustPressed(debugKeys))
+			else if (FlxG.keys.anyJustPressed(debugKeys) #if android || _virtualpad.buttonE.justPressed #end)
 			{
 				selectedSomethin = true;
 				MusicBeatState.switchState(new MasterEditorMenu());
 			}
-			#end
 		}
 
 		super.update(elapsed);
